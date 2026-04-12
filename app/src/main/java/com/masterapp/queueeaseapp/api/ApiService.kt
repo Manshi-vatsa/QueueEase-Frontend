@@ -10,7 +10,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
-
+import com.masterapp.queueeaseapp.model.CenterResponse
 interface ApiService {
     @POST("api/auth/login")
     fun login(@Body request: LoginRequest): Call<LoginResponse>
@@ -28,4 +28,9 @@ interface ApiService {
         @Query("userId") userId: Long,
         @Query("centerId") centerId: Long
     ): Call<QueueStatusResponse>
+
+    @GET("centers")
+    fun getCenters(
+        @Header("Authorization") token: String
+    ): Call<List<CenterResponse>>
 }
