@@ -1,3 +1,17 @@
 <resources>
-    <string name="app_name">QueueEaseApp</string>
+    <string name="app_name">QueueEase</string>
+    <string name="welcome_title">QueueEase</string>
+    <string name="welcome_subtitle">Smart queue management for faster service visits</string>
+    <string name="login_title">Welcome back</string>
+    <string name="login_subtitle">Login to continue managing your queue</string>
+    <string name="register_title">Create your account</string>
+    <string name="register_subtitle">Register once and start booking queues instantly</string>
+    <string name="home_title">Service Centers</string>
+    <string name="home_subtitle">Choose a center to view live queue status</string>
+    <string name="queue_live_title">Live Queue</string>
+    <string name="admin_title">Admin Dashboard</string>
+    <string name="admin_subtitle">Add service centers and monitor queue activity</string>
+    <string name="retry">Retry</string>
+    <string name="join_queue">Join Queue</string>
+    <string name="view_queue">View Queue</string>
 </resources>

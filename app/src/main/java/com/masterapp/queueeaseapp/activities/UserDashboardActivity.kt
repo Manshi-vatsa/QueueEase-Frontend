@@ -2,107 +2,89 @@ package com.masterapp.queueeaseapp.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
+import android.view.View
+import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-
 import com.masterapp.queueeaseapp.R
 import com.masterapp.queueeaseapp.adapter.CenterAdapter
-import com.masterapp.queueeaseapp.api.ApiClient
-import com.masterapp.queueeaseapp.model.BookingResponse
-import com.masterapp.queueeaseapp.model.CenterResponse
-
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.masterapp.queueeaseapp.home.HomeUiState
+import com.masterapp.queueeaseapp.home.HomeViewModel
+import kotlinx.coroutines.launch
 
 class UserDashboardActivity : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
-    private var userId: Long = 0L
+    private lateinit var progressBar: ProgressBar
+    private lateinit var tvError: TextView
+    private lateinit var btnRetry: Button
+    private lateinit var adapter: CenterAdapter
+    private lateinit var viewModel: HomeViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_dashboard)
 
-        val pref = getSharedPreferences("APP_PREF", MODE_PRIVATE)
-        userId = pref.getLong("USER_ID", 0L)
-
         recyclerView = findViewById(R.id.recyclerCenters)
+        progressBar = findViewById(R.id.progressCenters)
+        tvError = findViewById(R.id.tvCentersError)
+        btnRetry = findViewById(R.id.btnCentersRetry)
+
         recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = CenterAdapter { center ->
+            val intent = Intent(this, QueueListActivity::class.java).apply {
+                putExtra("centerId", center.id)
+                putExtra("centerName", center.name ?: "Center")
+            }
+            startActivity(intent)
+        }
+        recyclerView.adapter = adapter
 
-        loadCenters()
+        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+        btnRetry.setOnClickListener { viewModel.fetchCenters() }
+        observeState()
     }
 
-    private fun loadCenters() {
-
-        ApiClient.apiService.getCenters().enqueue(object : Callback<List<CenterResponse>> {
-
-            override fun onResponse(
-                call: Call<List<CenterResponse>>,
-                response: Response<List<CenterResponse>>
-            ) {
-                if (response.isSuccessful) {
-
-                    val centers = response.body() ?: emptyList()
-
-                    val adapter = CenterAdapter(centers) { centerId ->
-
-                        // 🔥 पहले queue join करो
-                        joinQueue(centerId)
-
+    private fun observeState() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    when (state) {
+                        is HomeUiState.Loading -> renderLoading()
+                        is HomeUiState.Success -> renderSuccess(state)
+                        is HomeUiState.Error -> renderError(state.message)
                     }
-
-                    recyclerView.adapter = adapter
-
-                } else {
-                    Toast.makeText(this@UserDashboardActivity, "Error loading centers", Toast.LENGTH_SHORT).show()
                 }
             }
-
-            override fun onFailure(call: Call<List<CenterResponse>>, t: Throwable) {
-                Toast.makeText(this@UserDashboardActivity, t.message, Toast.LENGTH_SHORT).show()
-            }
-        })
+        }
     }
 
-    // 🔥 JOIN QUEUE + OPEN NEXT SCREEN
-    private fun joinQueue(centerId: Long) {
+    private fun renderLoading() {
+        progressBar.visibility = View.VISIBLE
+        recyclerView.visibility = View.GONE
+        tvError.visibility = View.GONE
+        btnRetry.visibility = View.GONE
+    }
 
-        ApiClient.apiService.joinQueue(userId, centerId)
-            .enqueue(object : Callback<BookingResponse> {
+    private fun renderSuccess(state: HomeUiState.Success) {
+        progressBar.visibility = View.GONE
+        recyclerView.visibility = View.VISIBLE
+        tvError.visibility = View.GONE
+        btnRetry.visibility = View.GONE
+        adapter.submitList(state.centers)
+    }
 
-                override fun onResponse(
-                    call: Call<BookingResponse>,
-                    response: Response<BookingResponse>
-                ) {
-
-                    if (response.isSuccessful) {
-
-                        Toast.makeText(
-                            this@UserDashboardActivity,
-                            "Joined Queue ✅",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        // 🔥 FIXED DELAY + SAFE NAVIGATION
-                        android.os.Handler(mainLooper).postDelayed({
-
-                            val intent = Intent(this@UserDashboardActivity, QueueListActivity::class.java)
-                            intent.putExtra("centerId", centerId)
-                            startActivity(intent)
-
-                        }, 800)
-
-                    } else {
-                        Toast.makeText(this@UserDashboardActivity, "Join Failed ❌", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                override fun onFailure(call: Call<BookingResponse>, t: Throwable) {
-                    Toast.makeText(this@UserDashboardActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
-                }
-            })
+    private fun renderError(message: String) {
+        progressBar.visibility = View.GONE
+        recyclerView.visibility = View.GONE
+        tvError.visibility = View.VISIBLE
+        btnRetry.visibility = View.VISIBLE
+        tvError.text = message
     }
 }

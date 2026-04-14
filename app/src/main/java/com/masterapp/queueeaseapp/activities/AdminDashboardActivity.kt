@@ -20,7 +20,13 @@ class AdminDashboardActivity : AppCompatActivity() {
         setContentView(R.layout.activity_admin_dashboard)
 
         val btnAdd = findViewById<Button>(R.id.btnAddCenter)
+        val btnViewAllCenters = findViewById<Button>(R.id.btnViewAllCenters)
         val btnView = findViewById<Button>(R.id.btnViewQueue)
+
+        // ✅ VIEW ALL CENTERS
+        btnViewAllCenters.setOnClickListener {
+            startActivity(Intent(this, UserDashboardActivity::class.java))
+        }
 
         // ✅ VIEW QUEUE
         btnView.setOnClickListener {

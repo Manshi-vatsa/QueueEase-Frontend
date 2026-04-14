@@ -4,17 +4,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.masterapp.queueeaseapp.R
 import com.masterapp.queueeaseapp.model.CenterResponse
 
 class CenterAdapter(
-    private val centerList: List<CenterResponse>,
-    private val onCenterClick: (Long) -> Unit
-) : RecyclerView.Adapter<CenterAdapter.CenterViewHolder>() {
+    private val onCenterClick: (CenterResponse) -> Unit
+) : ListAdapter<CenterResponse, CenterAdapter.CenterViewHolder>(CenterDiffCallback) {
 
     class CenterViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvName: TextView = itemView.findViewById(R.id.tvCenterName)
+        val tvLocation: TextView = itemView.findViewById(R.id.tvCenterLocation)
+        val tvType: TextView = itemView.findViewById(R.id.tvCenterType)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CenterViewHolder {
@@ -25,15 +28,23 @@ class CenterAdapter(
 
     override fun onBindViewHolder(holder: CenterViewHolder, position: Int) {
 
-        val center = centerList[position]
+        val center = getItem(position)
 
         holder.tvName.text = center.name ?: "No Name"
-
-        // ✅ CLICK HANDLING (THIS IS YOUR ERROR FIX)
+        holder.tvLocation.text = center.location ?: "Unknown location"
+        holder.tvType.text = center.type ?: "Unknown type"
         holder.itemView.setOnClickListener {
-            onCenterClick(center.id)
+            onCenterClick(center)
         }
     }
 
-    override fun getItemCount(): Int = centerList.size
+    private object CenterDiffCallback : DiffUtil.ItemCallback<CenterResponse>() {
+        override fun areItemsTheSame(oldItem: CenterResponse, newItem: CenterResponse): Boolean {
+            return oldItem.id == newItem.id
+        }
+
+        override fun areContentsTheSame(oldItem: CenterResponse, newItem: CenterResponse): Boolean {
+            return oldItem == newItem
+        }
+    }
 }
