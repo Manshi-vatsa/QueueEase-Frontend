@@ -6,62 +6,80 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
-import com.masterapp.queueeaseapp.ui.*
-import com.masterapp.queueeaseapp.ui.theme.QueueEaseAppTheme
-import androidx.activity.compose.BackHandler
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.masterapp.queueeaseapp.ui.CenterListScreen
+import com.masterapp.queueeaseapp.ui.CenterDetailScreen
+import com.masterapp.queueeaseapp.ui.QueueStatusScreen
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        enableEdgeToEdge()
-
-        // ✅ ADD THIS BLOCK (ONLY THIS IS NEW)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "queue_channel",
                 "Queue Notifications",
                 NotificationManager.IMPORTANCE_HIGH
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
-            }
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
         }
 
         setContent {
-            QueueEaseAppTheme {
 
-                var currentScreen by remember { mutableStateOf("login") }
-                var userId by remember { mutableStateOf(1L) }
-                var selectedCenterId by remember { mutableStateOf(1L) }
+            val navController = rememberNavController()
 
-                BackHandler {
-                    when (currentScreen) {
-                        "status" -> currentScreen = "center"
-                        "center" -> currentScreen = "login"
-                        else -> finish()
-                    }
+            // 🔥 TEMP FIX
+            var role by remember { mutableStateOf("ADMIN") }
+
+            // ❗ FIXED USER ID
+            val userId = 1L
+
+            NavHost(
+                navController = navController,
+                startDestination = "centers"
+            ) {
+
+                composable("centers") {
+                    CenterListScreen(
+                        userId = userId,
+                        role = role,
+                        onCenterClick = { centerId ->
+                            navController.navigate("queueStatus/$userId/$centerId")
+                        },
+                        onAddCenterClick = {
+                            // TODO: Add Center screen
+                        }
+                    )
                 }
 
-                when (currentScreen) {
+                composable("centerDetail/{centerId}") { backStackEntry ->
+                    val centerId =
+                        backStackEntry.arguments?.getString("centerId")!!.toLong()
 
-                    "login" -> LoginScreen { id ->
-                        userId = id
-                        currentScreen = "center"
-                    }
+                    CenterDetailScreen(
+                        userId = userId,
+                        centerId = centerId,
+                        role = role,
+                        onJoinSuccess = {
+                            navController.navigate("queueStatus/$userId/$centerId")
+                        },
+                        onBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
 
-                    "center" -> CenterListScreen(userId) { centerId ->
-                        selectedCenterId = centerId
-                        currentScreen = "status"
-                    }
+                composable("queueStatus/{userId}/{centerId}") { backStackEntry ->
 
-                    "status" -> StatusScreen(userId, selectedCenterId)
+                    val uid = backStackEntry.arguments?.getString("userId")!!.toLong()
+                    val cid = backStackEntry.arguments?.getString("centerId")!!.toLong()
+
+                    QueueStatusScreen(uid, cid)
                 }
             }
         }

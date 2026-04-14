@@ -1,36 +1,48 @@
 package com.masterapp.queueeaseapp.api
-import com.masterapp.queueeaseapp.model.LoginRequest
-import com.masterapp.queueeaseapp.model.LoginResponse
-import com.masterapp.queueeaseapp.model.BookingResponse
-import com.masterapp.queueeaseapp.model.QueueStatusResponse
+
+import com.masterapp.queueeaseapp.model.*
 import retrofit2.Call
-import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.POST
-import retrofit2.http.Query
-import com.masterapp.queueeaseapp.model.CenterResponse
+import retrofit2.http.*
+
 interface ApiService {
+
     @POST("api/auth/login")
-    fun login(@Body request: LoginRequest): Call<LoginResponse>
+    fun login(
+        @Body request: LoginRequest
+    ): Call<AuthResponse>
+
+    @POST("api/auth/register")
+    fun register(
+        @Body request: RegisterRequest
+    ): Call<Map<String, Any>>
+
+    @GET("centers")
+    fun getCenters(): Call<List<CenterResponse>>
+
     @POST("api/queue/joinQueue")
     fun joinQueue(
-        @Header("Authorization") token: String,
         @Query("userId") userId: Long,
         @Query("centerId") centerId: Long
     ): Call<BookingResponse>
 
-
     @GET("api/queue/status")
     fun getStatus(
-        @Header("Authorization") token: String,
         @Query("userId") userId: Long,
         @Query("centerId") centerId: Long
     ): Call<QueueStatusResponse>
 
-    @GET("centers")
-    fun getCenters(
-        @Header("Authorization") token: String
-    ): Call<List<CenterResponse>>
+    @GET("api/queue/list")
+    fun getQueueList(
+        @Query("centerId") centerId: Long
+    ): Call<List<QueueUser>>
+
+    @PUT("api/queue/serveNext/{centerId}")
+    fun serveNext(
+        @Path("centerId") centerId: Long
+    ): Call<Any>
+
+    @POST("centers")
+    fun addCenter(
+        @Body center: CenterResponse
+    ): Call<CenterResponse>
 }

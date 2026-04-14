@@ -1,6 +1,7 @@
 package com.masterapp.queueeaseapp.model
 
 data class BookingResponse(
-    val message: String,
-    val queueNumber: Int
+    val userId: Long,
+    val queueNumber: Int,
+    val message: String
 )

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:usesCleartextTraffic="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -14,17 +17,30 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.QueueEaseApp"
         tools:targetApi="31">
+
+        <!-- ✅ START FROM ROLE SELECTION -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.QueueEaseApp">
+
+            android:name=".activities.RoleSelectionActivity"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Other Activities -->
+
+        <activity android:name=".activities.UserDashboardActivity"/>
+        <activity android:name=".activities.QueueListActivity"/>
+        <activity android:name=".activities.AdminDashboardActivity"/>
+        <activity android:name=".activities.RegisterActivity"/>
+        <activity android:name=".activities.LoginActivity"/>
+
+
+        <!-- ❌ REMOVE MainActivity as launcher (keep or delete, your choice) -->
+        <!-- <activity android:name=".MainActivity" /> -->
+
     </application>
 
 </manifest>

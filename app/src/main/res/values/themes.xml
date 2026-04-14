@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-
-    <style name="Theme.QueueEaseApp" parent="android:Theme.Material.Light.NoActionBar" />
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.QueueEaseApp" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize if needed -->
+    </style>
 </resources>

@@ -1,17 +1,17 @@
 package com.masterapp.queueeaseapp.ui
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn   // ✅ ADD
-import androidx.compose.foundation.lazy.items       // ✅ ADD
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.masterapp.queueeaseapp.api.RetrofitClient
-import com.masterapp.queueeaseapp.model.BookingResponse
+
 import com.masterapp.queueeaseapp.model.CenterResponse
-import com.masterapp.queueeaseapp.utils.SessionManager
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -19,14 +19,15 @@ import retrofit2.Response
 @Composable
 fun CenterListScreen(
     userId: Long,
-    onJoinSuccess: (Long) -> Unit
+    role: String,
+    onCenterClick: (Long) -> Unit,
+    onAddCenterClick: () -> Unit   // ✅ THIS MUST EXIST
 ) {
 
     var centers by remember { mutableStateOf<List<CenterResponse>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        RetrofitClient.api.getCenters(SessionManager.token)
+        RetrofitClient.api.getCenters()
             .enqueue(object : Callback<List<CenterResponse>> {
 
                 override fun onResponse(
@@ -36,76 +37,47 @@ fun CenterListScreen(
                     if (response.isSuccessful) {
                         centers = response.body() ?: emptyList()
                     }
-                    isLoading = false
                 }
 
-                override fun onFailure(
-                    call: Call<List<CenterResponse>>,
-                    t: Throwable
-                ) {
-                    Log.e("API", "Error: ${t.message}")
-                    isLoading = false
-                }
+                override fun onFailure(call: Call<List<CenterResponse>>, t: Throwable) {}
             })
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column {
 
-        Text("Select Center", style = MaterialTheme.typography.headlineMedium)
+        // ✅ ADMIN BUTTON
+        if (role == "ADMIN") {
+            Button(
+                onClick = {
+                    // TODO: open AddCenter screen
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("➕ Add Center")
+            }
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn {
+            items(centers) { center ->
 
-        if (isLoading) {
-            CircularProgressIndicator()
-        } else {
-
-            // ✅ REPLACED forEach WITH LazyColumn
-            LazyColumn {
-
-                items(centers) { center ->
-
-                    Card(
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                            .padding(16.dp)
                     ) {
 
-                        Column(
-                            modifier = Modifier.padding(16.dp)   // ❌ removed verticalScroll from here
-                        ) {
+                        Text("🏥 ${center.name ?: "No Name"}")
 
-                            Text(center.name ?: "Unknown Center")
-                            Text(center.location ?: "No Location")
-                            Text(center.type ?: "No Type")
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Button(onClick = {
-
-                                RetrofitClient.api.joinQueue(
-                                    SessionManager.token,
-                                    userId,
-                                    center.id
-                                )
-                                    .enqueue(object : Callback<BookingResponse> {
-
-                                        override fun onResponse(
-                                            call: Call<BookingResponse>,
-                                            response: Response<BookingResponse>
-                                        ) {
-                                            onJoinSuccess(center.id)
-                                        }
-
-                                        override fun onFailure(
-                                            call: Call<BookingResponse>,
-                                            t: Throwable
-                                        ) {
-                                        }
-                                    })
-
-                            }) {
-                                Text("Join Queue")
+                        Button(
+                            onClick = {
+                                onCenterClick(center.id)   // ✅ ONLY NAVIGATION
                             }
+                        ) {
+                            Text("View Queue")
                         }
                     }
                 }

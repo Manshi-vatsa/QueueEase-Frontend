@@ -1,5 +1,6 @@
 package com.masterapp.queueeaseapp.ui
 
+import android.content.Context
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -12,9 +13,9 @@ import androidx.compose.ui.unit.dp
 import com.masterapp.queueeaseapp.api.RetrofitClient
 import com.masterapp.queueeaseapp.model.QueueStatusResponse
 import com.masterapp.queueeaseapp.showNotification
-import com.masterapp.queueeaseapp.utils.SessionManager
 import android.util.Log
-
+import com.masterapp.queueeaseapp.api.ApiClient
+import kotlinx.coroutines.isActive
 @Composable
 fun StatusScreen(userId: Long, centerId: Long) {
 
@@ -27,49 +28,31 @@ fun StatusScreen(userId: Long, centerId: Long) {
     var notified by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        while (true) {
 
-            // ✅ DEBUG TOKEN
-            Log.d("TOKEN_DEBUG", "Token: ${SessionManager.token}")
+        while (isActive) {
 
-            RetrofitClient.api.getStatus(
-                "${SessionManager.token}",   // ✅ FIXED
-                userId,
-                centerId
-            ).enqueue(object : Callback<QueueStatusResponse> {
+            ApiClient.apiService.getStatus(userId, centerId)
+                .enqueue(object : Callback<QueueStatusResponse> {
+                    override fun onResponse(
+                        call: Call<QueueStatusResponse>,
+                        response: Response<QueueStatusResponse>
+                    ) {
+                        if (response.isSuccessful && response.body() != null) {
+                            val data = response.body()!!
 
-                override fun onResponse(
-                    call: Call<QueueStatusResponse>,
-                    response: Response<QueueStatusResponse>
-                ) {
-
-                    if (response.isSuccessful && response.body() != null) {
-
-                        val data = response.body()!!
-
-                        queueNumber = "Queue No: ${data.queueNumber}"
-                        waitTimeText = "Wait Time: ${data.estimatedWaitTime} mins"
-                        waitTimeValue = data.estimatedWaitTime
-                        recommendation = data.recommendation
-
-                        if (!notified && (data.peopleAhead <= 5 || data.estimatedWaitTime <= 10)) {
-                            showNotification(context)
-                            notified = true
+                            queueNumber = "Queue No: ${data.queueNumber}"
+                            waitTimeText = "Wait Time: ${data.estimatedWaitTime} mins"
+                            waitTimeValue = data.estimatedWaitTime
+                            recommendation = data.recommendation
                         }
-
-                    } else {
-                        queueNumber = "No Queue Found"
-                        waitTimeText = ""
-                        recommendation = "Try another center"
                     }
-                }
 
-                override fun onFailure(call: Call<QueueStatusResponse>, t: Throwable) {
-                    Log.e("API_ERROR", "Error: ${t.message}")
-                }
-            })
+                    override fun onFailure(call: Call<QueueStatusResponse>, t: Throwable) {
+                        Log.e("API_ERROR", "Error: ${t.message}")
+                    }
+                })
 
-            kotlinx.coroutines.delay(10000) // ⏳ refresh every 10 sec
+            kotlinx.coroutines.delay(10000)
         }
     }
 
