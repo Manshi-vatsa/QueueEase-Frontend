@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.masterapp.queueeaseapp.R
 import com.masterapp.queueeaseapp.api.RetrofitClient
+import com.masterapp.queueeaseapp.utils.userFacingNetworkMessage
 import com.masterapp.queueeaseapp.model.AuthResponse
 import com.masterapp.queueeaseapp.model.LoginRequest
 import retrofit2.Call
@@ -79,7 +80,11 @@ class LoginActivity : AppCompatActivity() {
                     }
 
                     override fun onFailure(call: Call<AuthResponse>, t: Throwable) {
-                        Toast.makeText(this@LoginActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@LoginActivity,
+                            t.userFacingNetworkMessage(),
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 })
         }

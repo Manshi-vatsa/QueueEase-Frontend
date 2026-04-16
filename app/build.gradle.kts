@@ -6,8 +6,6 @@ plugins {
 
 val backendBaseUrlOverride = (project.findProperty("BACKEND_BASE_URL") as String?) ?: ""
 val backendPort = (project.findProperty("BACKEND_PORT") as String?) ?: "8080"
-val physicalDeviceHost = (project.findProperty("BACKEND_DEVICE_HOST") as String?) ?: "10.22.174.212"
-val emulatorHost = (project.findProperty("BACKEND_EMULATOR_HOST") as String?) ?: "10.0.2.2"
 
 android {
     namespace = "com.masterapp.queueeaseapp"
@@ -23,8 +21,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrlOverride\"")
         buildConfigField("String", "BACKEND_PORT", "\"$backendPort\"")
-        buildConfigField("String", "BACKEND_DEVICE_HOST", "\"$physicalDeviceHost\"")
-        buildConfigField("String", "BACKEND_EMULATOR_HOST", "\"$emulatorHost\"")
     }
 
     buildTypes {

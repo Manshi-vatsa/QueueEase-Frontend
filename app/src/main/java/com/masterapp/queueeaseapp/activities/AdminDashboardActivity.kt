@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.masterapp.queueeaseapp.R
 import com.masterapp.queueeaseapp.api.RetrofitClient
+import com.masterapp.queueeaseapp.utils.userFacingNetworkMessage
 import com.masterapp.queueeaseapp.model.CenterResponse
 import retrofit2.Call
 import retrofit2.Callback
@@ -32,6 +33,8 @@ class AdminDashboardActivity : AppCompatActivity() {
         btnView.setOnClickListener {
             val intent = Intent(this, QueueListActivity::class.java)
             intent.putExtra("centerId", 1)
+            intent.putExtra("role", "ADMIN")
+            intent.putExtra("centerName", "Center 1")
             startActivity(intent)
         }
 
@@ -65,7 +68,11 @@ class AdminDashboardActivity : AppCompatActivity() {
                     }
 
                     override fun onFailure(call: Call<CenterResponse>, t: Throwable) {
-                        Toast.makeText(this@AdminDashboardActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@AdminDashboardActivity,
+                            t.userFacingNetworkMessage(),
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 })
         }

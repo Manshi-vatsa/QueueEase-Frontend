@@ -15,6 +15,8 @@ class QueueAdapter : ListAdapter<QueueUser, QueueAdapter.ViewHolder>(QueueDiffCa
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val userId: TextView = view.findViewById(R.id.tvUserId)
         val queueNumber: TextView = view.findViewById(R.id.tvQueueNumber)
+        val queueBadge: TextView = view.findViewById(R.id.tvQueueBadge)
+        val position: TextView = view.findViewById(R.id.tvPosition)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -25,8 +27,10 @@ class QueueAdapter : ListAdapter<QueueUser, QueueAdapter.ViewHolder>(QueueDiffCa
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        holder.userId.text = "User: ${item.userId}"
-        holder.queueNumber.text = "Queue No: ${item.queueNumber}"
+        holder.userId.text = "User ID: ${item.userId}"
+        holder.queueNumber.text = "Token #${item.queueNumber}"
+        holder.position.text = "Queue Position: ${position + 1}"
+        holder.queueBadge.text = if (position == 0) "NEXT" else "IN QUEUE"
     }
 
     private object QueueDiffCallback : DiffUtil.ItemCallback<QueueUser>() {

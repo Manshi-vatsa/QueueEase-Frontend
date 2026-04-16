@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.masterapp.queueeaseapp.api.RetrofitClient
+import com.masterapp.queueeaseapp.utils.userFacingNetworkMessage
 import com.masterapp.queueeaseapp.model.BookingResponse
 import com.masterapp.queueeaseapp.model.QueueUser
 import kotlinx.coroutines.delay
@@ -102,7 +103,7 @@ fun CenterDetailScreen(
                             }
 
                             override fun onFailure(call: Call<BookingResponse>, t: Throwable) {
-                                Toast.makeText(context, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, t.userFacingNetworkMessage(), Toast.LENGTH_LONG).show()
                             }
                         })
 

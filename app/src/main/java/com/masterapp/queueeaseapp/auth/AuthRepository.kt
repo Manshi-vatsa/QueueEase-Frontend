@@ -1,6 +1,7 @@
 package com.masterapp.queueeaseapp.auth
 
 import com.masterapp.queueeaseapp.api.ApiClient
+import com.masterapp.queueeaseapp.utils.isLikelyNetworkFailure
 import com.masterapp.queueeaseapp.model.AuthResponse
 import com.masterapp.queueeaseapp.model.LoginRequest
 import com.masterapp.queueeaseapp.model.RegisterRequest
@@ -91,11 +92,7 @@ class AuthRepository {
                 ApiCallResult.HttpError(response.code())
             }
         } catch (e: Exception) {
-            val message = e.message.orEmpty()
-            if (message.contains("Unable to resolve host", ignoreCase = true) ||
-                message.contains("Failed to connect", ignoreCase = true) ||
-                message.contains("timeout", ignoreCase = true)
-            ) {
+            if (e.isLikelyNetworkFailure()) {
                 ApiCallResult.NetworkError
             } else {
                 ApiCallResult.UnknownError
@@ -119,11 +116,7 @@ class AuthRepository {
                 ApiCallResult.HttpError(response.code())
             }
         } catch (e: Exception) {
-            val message = e.message.orEmpty()
-            if (message.contains("Unable to resolve host", ignoreCase = true) ||
-                message.contains("Failed to connect", ignoreCase = true) ||
-                message.contains("timeout", ignoreCase = true)
-            ) {
+            if (e.isLikelyNetworkFailure()) {
                 ApiCallResult.NetworkError
             } else {
                 ApiCallResult.UnknownError

@@ -11,6 +11,7 @@ import com.masterapp.queueeaseapp.api.RetrofitClient
 import com.masterapp.queueeaseapp.model.AuthResponse
 import com.masterapp.queueeaseapp.model.LoginRequest
 import com.masterapp.queueeaseapp.utils.SessionManager
+import com.masterapp.queueeaseapp.utils.userFacingNetworkMessage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -113,7 +114,7 @@ fun LoginScreen(onLogin: (Long) -> Unit) {
                                 t: Throwable
                             ) {
                                 isLoading = false
-                                errorMessage = "Error: ${t.message}"
+                                errorMessage = t.userFacingNetworkMessage()
                                 Log.e("LOGIN_FAILURE", t.message.toString())
                             }
                         })

@@ -41,6 +41,7 @@ class UserDashboardActivity : AppCompatActivity() {
             val intent = Intent(this, QueueListActivity::class.java).apply {
                 putExtra("centerId", center.id)
                 putExtra("centerName", center.name ?: "Center")
+                putExtra("role", "USER")
             }
             startActivity(intent)
         }
