@@ -26,6 +26,7 @@ import com.masterapp.queueeaseapp.utils.userFacingNetworkMessage
 import com.masterapp.queueeaseapp.model.CenterResponse
 import com.masterapp.queueeaseapp.ui.CenterListScreen
 import com.masterapp.queueeaseapp.ui.AdminScreen
+import com.masterapp.queueeaseapp.ui.CreateCenterScreen
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -36,26 +37,30 @@ class AdminDashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            // UI UPDATED - Temporary visible change
-            Text(
-                text = "🎉 UI UPDATED 🎉",
-                style = MaterialTheme.typography.displaySmall.copy(
-                    color = Color.Yellow,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            )
-
-            // Admin dashboard with enhanced UI
-            AdminDashboardContent()
+            var showCreateCenter by remember { mutableStateOf(false) }
+            
+            if (showCreateCenter) {
+                CreateCenterScreen(
+                    onCenterCreated = {
+                        showCreateCenter = false
+                    },
+                    onBack = {
+                        showCreateCenter = false
+                    }
+                )
+            } else {
+                AdminDashboardContent(
+                    onCreateCenterClick = { showCreateCenter = true }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun AdminDashboardContent() {
+private fun AdminDashboardContent(
+    onCreateCenterClick: () -> Unit
+) {
     val context = LocalContext.current
     
     // Simple gradient background
@@ -188,42 +193,7 @@ private fun AdminDashboardContent() {
                     
                     // Add Center Button
                     Button(
-                        onClick = {
-                            val name = "Center Name"
-                            val location = "Center Location"
-                            val type = "Center Type"
-
-                            if (name.isEmpty() || location.isEmpty() || type.isEmpty()) {
-                                Toast.makeText(context, "Fill all fields", Toast.LENGTH_SHORT).show()
-                                return@Button
-                            }
-
-                            // 🔥 CORRECT ORDER
-                            val center = CenterResponse(0, name, location, type)
-
-                            RetrofitClient.api.addCenter(center)
-                                .enqueue(object : Callback<CenterResponse> {
-
-                                    override fun onResponse(
-                                        call: Call<CenterResponse>,
-                                        response: Response<CenterResponse>
-                                    ) {
-                                        if (response.isSuccessful) {
-                                            Toast.makeText(context, "Center Added ✅", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(context, "Failed ❌", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-
-                                    override fun onFailure(call: Call<CenterResponse>, t: Throwable) {
-                                        Toast.makeText(
-                                            context,
-                                            t.userFacingNetworkMessage(),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                })
-                        },
+                        onClick = onCreateCenterClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
@@ -244,7 +214,7 @@ private fun AdminDashboardContent() {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Add Center",
+                            text = "Create Center",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )

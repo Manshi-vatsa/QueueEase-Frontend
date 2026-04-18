@@ -45,4 +45,14 @@ interface ApiService {
     fun addCenter(
         @Body center: CenterResponse
     ): Call<CenterResponse>
+
+    @GET("queue/users")
+    fun getQueueUsers(
+        @Query("centerId") centerId: Long
+    ): Call<List<QueueUser>>
+
+    @POST("queue/serveUser")
+    fun serveUser(
+        @Body request: ServeUserRequest
+    ): Call<QueueStatusResponse>
 }

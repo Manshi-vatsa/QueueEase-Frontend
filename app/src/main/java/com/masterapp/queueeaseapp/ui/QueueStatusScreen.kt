@@ -170,7 +170,33 @@ fun QueueStatusScreen(
             } else if (isInQueue && data != null) {
                 QueueStatusContent(data = data!!)
             } else if (!isInQueue) {
-                NotInQueueContent(userId = userId, centerId = centerId)
+                NotInQueueContent(
+                    userId = userId, 
+                    centerId = centerId,
+                    onQueueJoined = {
+                        // Trigger immediate refresh when queue is joined
+                        isLoading = true
+                        RetrofitClient.api.getStatus(userId, centerId)
+                            .enqueue(object : Callback<QueueStatusResponse> {
+                                override fun onResponse(
+                                    call: Call<QueueStatusResponse>,
+                                    response: Response<QueueStatusResponse>
+                                ) {
+                                    isLoading = false
+                                    if (response.isSuccessful && response.body() != null) {
+                                        data = response.body()
+                                        isInQueue = true
+                                        joinQueueError = null
+                                        Log.d("QueueStatusScreen", "DEBUG - Queue status refreshed after joining")
+                                    }
+                                }
+                                override fun onFailure(call: Call<QueueStatusResponse>, t: Throwable) {
+                                    isLoading = false
+                                    Log.e("QueueStatusScreen", "ERROR - Failed to refresh queue status: ${t.message}")
+                                }
+                            })
+                    }
+                )
             } else if (joinQueueError != null) {
                 ErrorContent(error = joinQueueError!!)
             } else {
@@ -422,7 +448,11 @@ private fun RecommendationCard(recommendation: String?) {
 }
 
 @Composable
-private fun NotInQueueContent(userId: Long, centerId: Long) {
+private fun NotInQueueContent(
+    userId: Long, 
+    centerId: Long,
+    onQueueJoined: () -> Unit
+) {
     var isJoining by remember { mutableStateOf(false) }
     
     Card(
@@ -479,7 +509,8 @@ private fun NotInQueueContent(userId: Long, centerId: Long) {
                                 
                                 if (response.isSuccessful) {
                                     Log.d("NotInQueueContent", "DEBUG - Successfully joined queue")
-                                    // The UI will automatically update on the next API poll
+                                    // Call the callback to trigger immediate refresh
+                                    onQueueJoined()
                                 } else {
                                     Log.e("NotInQueueContent", "ERROR - Failed to join queue: ${response.code()}")
                                 }
