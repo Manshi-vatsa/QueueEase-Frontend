@@ -1,5 +1,6 @@
 package com.masterapp.queueeaseapp.queue
 
+import android.util.Log
 import com.masterapp.queueeaseapp.api.ApiClient
 import com.masterapp.queueeaseapp.model.BookingResponse
 import com.masterapp.queueeaseapp.model.QueueStatusResponse
@@ -44,23 +45,33 @@ class QueueRepository {
     }
 
     suspend fun joinQueue(userId: Long, centerId: Long): QueueResult<BookingResponse> {
+        Log.d("QueueRepository", "DEBUG - joinQueue called with userId: $userId, centerId: $centerId")
         return try {
             val response = ApiClient.apiService.joinQueue(userId, centerId).awaitResponse()
+            Log.d("QueueRepository", "DEBUG - joinQueue response code: ${response.code()}, successful: ${response.isSuccessful}")
+            Log.d("QueueRepository", "DEBUG - joinQueue response body: ${response.body()}")
+            
             when {
                 response.isSuccessful -> {
                     val body = response.body()
                     if (body != null) {
+                        Log.d("QueueRepository", "DEBUG - joinQueue success: ${body}")
                         QueueResult.Success(body)
                     } else {
+                        Log.e("QueueRepository", "ERROR - joinQueue response is empty")
                         QueueResult.Error("Join queue response is empty.")
                     }
                 }
 
                 response.code() == 409 -> QueueResult.Error("Already in queue.")
                 response.code() == 401 -> QueueResult.Error("Session expired. Please login again.")
-                else -> QueueResult.Error("Failed to join queue (${response.code()}).")
+                else -> {
+                    Log.e("QueueRepository", "ERROR - joinQueue failed with code: ${response.code()}, message: ${response.message()}")
+                    QueueResult.Error("Failed to join queue (${response.code()}).")
+                }
             }
         } catch (e: Exception) {
+            Log.e("QueueRepository", "ERROR - joinQueue exception: ${e.message}", e)
             QueueResult.Error("Network error: ${e.message ?: "Please try again."}")
         }
     }

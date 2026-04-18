@@ -2,53 +2,47 @@ package com.masterapp.queueeaseapp.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.masterapp.queueeaseapp.R
-import com.masterapp.queueeaseapp.adapter.CenterAdapter
+import kotlinx.coroutines.launch
 import com.masterapp.queueeaseapp.home.HomeUiState
 import com.masterapp.queueeaseapp.home.HomeViewModel
-import kotlinx.coroutines.launch
+import com.masterapp.queueeaseapp.utils.SessionManager
 
-class UserDashboardActivity : AppCompatActivity() {
+class UserDashboardActivity : ComponentActivity() {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var tvError: TextView
-    private lateinit var btnRetry: Button
-    private lateinit var adapter: CenterAdapter
     private lateinit var viewModel: HomeViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_user_dashboard)
-
-        recyclerView = findViewById(R.id.recyclerCenters)
-        progressBar = findViewById(R.id.progressCenters)
-        tvError = findViewById(R.id.tvCentersError)
-        btnRetry = findViewById(R.id.btnCentersRetry)
-
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = CenterAdapter { center ->
-            val intent = Intent(this, QueueListActivity::class.java).apply {
-                putExtra("centerId", center.id)
-                putExtra("centerName", center.name ?: "Center")
-                putExtra("role", "USER")
-            }
-            startActivity(intent)
-        }
-        recyclerView.adapter = adapter
 
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
-        btnRetry.setOnClickListener { viewModel.fetchCenters() }
+
+        setContent {
+            // Use our enhanced CenterListScreen Composable
+            EnhancedCenterListScreen(viewModel)
+        }
+
         observeState()
     }
 
@@ -56,36 +50,32 @@ class UserDashboardActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    when (state) {
-                        is HomeUiState.Loading -> renderLoading()
-                        is HomeUiState.Success -> renderSuccess(state)
-                        is HomeUiState.Error -> renderError(state.message)
-                    }
+                    // Handle state updates in our enhanced screen
                 }
             }
         }
     }
+}
 
-    private fun renderLoading() {
-        progressBar.visibility = View.VISIBLE
-        recyclerView.visibility = View.GONE
-        tvError.visibility = View.GONE
-        btnRetry.visibility = View.GONE
-    }
-
-    private fun renderSuccess(state: HomeUiState.Success) {
-        progressBar.visibility = View.GONE
-        recyclerView.visibility = View.VISIBLE
-        tvError.visibility = View.GONE
-        btnRetry.visibility = View.GONE
-        adapter.submitList(state.centers)
-    }
-
-    private fun renderError(message: String) {
-        progressBar.visibility = View.GONE
-        recyclerView.visibility = View.GONE
-        tvError.visibility = View.VISIBLE
-        btnRetry.visibility = View.VISIBLE
-        tvError.text = message
-    }
+@Composable
+private fun EnhancedCenterListScreen(viewModel: HomeViewModel) {
+    val context = LocalContext.current
+    val userId = SessionManager.getUserId() ?: -1L
+    
+    Log.d("UserDashboardActivity", "DEBUG - Using actual CenterListScreen with userId: $userId")
+    
+    // Use the actual CenterListScreen with real API data
+    com.masterapp.queueeaseapp.ui.CenterListScreen(
+        userId = userId,
+        role = "USER",
+        onCenterClick = { centerId ->
+            Log.d("UserDashboardActivity", "DEBUG - Center clicked from list, centerId: $centerId")
+            val intent = Intent(context, QueueListActivity::class.java)
+            intent.putExtra("centerId", centerId)
+            intent.putExtra("centerName", "Center $centerId")
+            intent.putExtra("role", "USER")
+            context.startActivity(intent)
+        },
+        onAddCenterClick = { /* User cannot add centers */ }
+    )
 }

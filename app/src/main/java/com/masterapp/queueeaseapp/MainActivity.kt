@@ -7,12 +7,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.masterapp.queueeaseapp.ui.CenterListScreen
-import com.masterapp.queueeaseapp.ui.CenterDetailScreen
-import com.masterapp.queueeaseapp.ui.QueueStatusScreen
+import androidx.navigation.compose.*
+import com.masterapp.queueeaseapp.ui.*
 
 class MainActivity : ComponentActivity() {
 
@@ -33,33 +29,48 @@ class MainActivity : ComponentActivity() {
 
             val navController = rememberNavController()
 
-            // 🔥 TEMP FIX
-            var role by remember { mutableStateOf("ADMIN") }
-
-            // ❗ FIXED USER ID
-            val userId = 1L
+            // 🔥 TEMP ROLE
+            val role = "USER"   // change ADMIN/USER for testing
 
             NavHost(
                 navController = navController,
-                startDestination = "centers"
+                startDestination = "login"
             ) {
 
-                composable("centers") {
+                // ✅ LOGIN
+                composable("login") {
+                    LoginScreen { uid ->
+
+                        navController.navigate("centers/$uid") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                }
+
+                // ✅ CENTER LIST
+                composable("centers/{userId}") { backStackEntry ->
+
+                    val userId = backStackEntry.arguments
+                        ?.getString("userId")!!.toLong()
+
                     CenterListScreen(
                         userId = userId,
                         role = role,
                         onCenterClick = { centerId ->
-                            navController.navigate("queueStatus/$userId/$centerId")
+                            navController.navigate("centerDetail/$userId/$centerId")
                         },
-                        onAddCenterClick = {
-                            // TODO: Add Center screen
-                        }
+                        onAddCenterClick = {}
                     )
                 }
 
-                composable("centerDetail/{centerId}") { backStackEntry ->
-                    val centerId =
-                        backStackEntry.arguments?.getString("centerId")!!.toLong()
+                // ✅ CENTER DETAIL
+                composable("centerDetail/{userId}/{centerId}") { backStackEntry ->
+
+                    val userId = backStackEntry.arguments
+                        ?.getString("userId")!!.toLong()
+
+                    val centerId = backStackEntry.arguments
+                        ?.getString("centerId")!!.toLong()
 
                     CenterDetailScreen(
                         userId = userId,
@@ -74,12 +85,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                // ✅ QUEUE STATUS
                 composable("queueStatus/{userId}/{centerId}") { backStackEntry ->
 
-                    val uid = backStackEntry.arguments?.getString("userId")!!.toLong()
-                    val cid = backStackEntry.arguments?.getString("centerId")!!.toLong()
+                    val userId = backStackEntry.arguments
+                        ?.getString("userId")!!.toLong()
 
-                    QueueStatusScreen(uid, cid)
+                    val centerId = backStackEntry.arguments
+                        ?.getString("centerId")!!.toLong()
+
+                    QueueStatusScreen(userId, centerId)
                 }
             }
         }

@@ -67,4 +67,14 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation ("androidx.recyclerview:recyclerview:1.3.2")
+    
+    // Google Maps and Location Services
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.maps.android:maps-compose:2.15.0")
+    
+    // Enhanced UI dependencies
+    implementation("androidx.compose.animation:animation:1.5.4")
+    implementation("androidx.compose.foundation:foundation:1.5.4")
+    implementation("com.airbnb.android:lottie-compose:6.1.0")
 }

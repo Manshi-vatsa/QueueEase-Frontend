@@ -2,79 +2,256 @@ package com.masterapp.queueeaseapp.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import com.masterapp.queueeaseapp.R
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.masterapp.queueeaseapp.api.RetrofitClient
 import com.masterapp.queueeaseapp.utils.userFacingNetworkMessage
 import com.masterapp.queueeaseapp.model.CenterResponse
+import com.masterapp.queueeaseapp.ui.CenterListScreen
+import com.masterapp.queueeaseapp.ui.AdminScreen
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class AdminDashboardActivity : AppCompatActivity() {
+class AdminDashboardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_admin_dashboard)
 
-        val btnAdd = findViewById<Button>(R.id.btnAddCenter)
-        val btnViewAllCenters = findViewById<Button>(R.id.btnViewAllCenters)
-        val btnView = findViewById<Button>(R.id.btnViewQueue)
+        setContent {
+            // UI UPDATED - Temporary visible change
+            Text(
+                text = "🎉 UI UPDATED 🎉",
+                style = MaterialTheme.typography.displaySmall.copy(
+                    color = Color.Yellow,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
 
-        // ✅ VIEW ALL CENTERS
-        btnViewAllCenters.setOnClickListener {
-            startActivity(Intent(this, UserDashboardActivity::class.java))
+            // Admin dashboard with enhanced UI
+            AdminDashboardContent()
         }
+    }
+}
 
-        // ✅ VIEW QUEUE
-        btnView.setOnClickListener {
-            val intent = Intent(this, QueueListActivity::class.java)
-            intent.putExtra("centerId", 1)
-            intent.putExtra("role", "ADMIN")
-            intent.putExtra("centerName", "Center 1")
-            startActivity(intent)
-        }
-
-        // ✅ ADD CENTER
-        btnAdd.setOnClickListener {
-
-            val name = findViewById<EditText>(R.id.etCenterName).text.toString()
-            val location = findViewById<EditText>(R.id.etLocation).text.toString()
-            val type = findViewById<EditText>(R.id.etType).text.toString()
-
-            if (name.isEmpty() || location.isEmpty() || type.isEmpty()) {
-                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            // 🔥 CORRECT ORDER
-            val center = CenterResponse(0, name, location, type)
-
-            RetrofitClient.api.addCenter(center)
-                .enqueue(object : Callback<CenterResponse> {
-
-                    override fun onResponse(
-                        call: Call<CenterResponse>,
-                        response: Response<CenterResponse>
+@Composable
+private fun AdminDashboardContent() {
+    val context = LocalContext.current
+    
+    // Simple gradient background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1E3A8A),
+                        Color(0xFF3730A3),
+                        Color(0xFF6366F1)
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Admin Functions Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = "Admin",
+                        tint = Color(0xFF6366F1),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Admin Dashboard",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            color = Color(0xFF1F2937),
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // View All Centers Button
+                    Button(
+                        onClick = {
+                            context.startActivity(Intent(context, UserDashboardActivity::class.java))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(28.dp)
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF6366F1),
+                            contentColor = Color.White
+                        )
                     ) {
-                        if (response.isSuccessful) {
-                            Toast.makeText(this@AdminDashboardActivity, "Center Added ✅", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this@AdminDashboardActivity, "Failed ❌", Toast.LENGTH_SHORT).show()
-                        }
+                        Icon(
+                            Icons.Default.List,
+                            contentDescription = "View Centers",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "View All Centers",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
                     }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // View Queue Button
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, QueueListActivity::class.java)
+                            intent.putExtra("centerId", 1)
+                            intent.putExtra("role", "ADMIN")
+                            intent.putExtra("centerName", "Center 1")
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(28.dp)
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF10B981),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "View Queue",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Manage Queue",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Add Center Button
+                    Button(
+                        onClick = {
+                            val name = "Center Name"
+                            val location = "Center Location"
+                            val type = "Center Type"
 
-                    override fun onFailure(call: Call<CenterResponse>, t: Throwable) {
-                        Toast.makeText(
-                            this@AdminDashboardActivity,
-                            t.userFacingNetworkMessage(),
-                            Toast.LENGTH_LONG
-                        ).show()
+                            if (name.isEmpty() || location.isEmpty() || type.isEmpty()) {
+                                Toast.makeText(context, "Fill all fields", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            // 🔥 CORRECT ORDER
+                            val center = CenterResponse(0, name, location, type)
+
+                            RetrofitClient.api.addCenter(center)
+                                .enqueue(object : Callback<CenterResponse> {
+
+                                    override fun onResponse(
+                                        call: Call<CenterResponse>,
+                                        response: Response<CenterResponse>
+                                    ) {
+                                        if (response.isSuccessful) {
+                                            Toast.makeText(context, "Center Added ✅", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Failed ❌", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+
+                                    override fun onFailure(call: Call<CenterResponse>, t: Throwable) {
+                                        Toast.makeText(
+                                            context,
+                                            t.userFacingNetworkMessage(),
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                })
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(28.dp)
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4ADE7B),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add Center",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Add Center",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
                     }
-                })
+                }
+            }
         }
     }
 }
