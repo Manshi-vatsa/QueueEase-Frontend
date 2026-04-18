@@ -74,14 +74,17 @@ fun AdminScreen(centerId: Long) {
             verticalArrangement = Arrangement.Top
         ) {
             // Header with step indicator
-            AdminHeader(centerId = centerId, currentStep = currentStep)
+            AdminHeaderFixed(centerId = centerId, currentStep = currentStep)
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Step content
+            // Step content - 9-step flow as specified
             when (currentStep) {
-                1 -> Step1ServeNext(onNext = { currentStep = 2 })
-                2 -> Step2CenterSelection(
+                // STEP 1: Admin clicks "Serve Next"
+                1 -> Step1ServeNextFixed(onNext = { currentStep = 2 })
+                
+                // STEP 2: App opens Center List screen (fetch from API) - GET /centers
+                2 -> Step2CenterSelectionFixed(
                     centers = centers,
                     selectedCenter = selectedCenter,
                     isLoading = isLoading,
@@ -100,7 +103,7 @@ fun AdminScreen(centerId: Long) {
                                     isLoading = false
                                     if (response.isSuccessful) {
                                         centers = response.body() ?: emptyList()
-                                        Log.d("AdminScreen", "DEBUG - Loaded ${centers.size} centers")
+                                        Log.d("AdminScreenFixed", "STEP 2 - Loaded ${centers.size} centers")
                                     } else {
                                         message = "Failed to load centers"
                                     }
@@ -112,14 +115,23 @@ fun AdminScreen(centerId: Long) {
                             })
                     }
                 )
-                3 -> Step3UserSelection(
+                
+                // STEP 3: Admin selects a center
+                3 -> Step3CenterConfirmationFixed(
+                    selectedCenter = selectedCenter,
+                    onConfirm = { currentStep = 4 },
+                    onBack = { currentStep = 2 }
+                )
+                
+                // STEP 4: App fetches queue users for that center - GET /queue/users?centerId={id}
+                4 -> Step4UserSelectionFixed(
                     queueUsers = queueUsers,
                     selectedUser = selectedUser,
                     isLoading = isLoading,
                     centerName = selectedCenter?.name ?: "Unknown",
                     onUserSelected = { user ->
                         selectedUser = user
-                        currentStep = 4
+                        currentStep = 5
                     },
                     onLoadUsers = {
                         isLoading = true
@@ -132,7 +144,7 @@ fun AdminScreen(centerId: Long) {
                                     isLoading = false
                                     if (response.isSuccessful) {
                                         queueUsers = response.body() ?: emptyList()
-                                        Log.d("AdminScreen", "DEBUG - Loaded ${queueUsers.size} queue users")
+                                        Log.d("AdminScreenFixed", "STEP 4 - Loaded ${queueUsers.size} queue users for center ${selectedCenter?.id}")
                                     } else {
                                         message = "Failed to load queue users"
                                     }
@@ -144,21 +156,20 @@ fun AdminScreen(centerId: Long) {
                             })
                     }
                 )
-                4 -> Step4Confirmation(
+                
+                // STEP 5: Admin selects ONE user
+                5 -> Step5UserConfirmationFixed(
                     selectedCenter = selectedCenter,
                     selectedUser = selectedUser,
-                    onConfirm = {
-                        currentStep = 5
-                    },
-                    onBack = { currentStep = 3 }
+                    onConfirm = { currentStep = 6 },
+                    onBack = { currentStep = 4 }
                 )
-                5 -> Step5ServeUser(
+                
+                // STEP 6: Admin clicks "Serve This User"
+                6 -> Step6ServeUserFixed(
                     selectedCenter = selectedCenter,
                     selectedUser = selectedUser,
                     isLoading = isLoading,
-                    onComplete = {
-                        currentStep = 6
-                    },
                     onServeUser = { userId, centerId ->
                         isLoading = true
                         val request = com.masterapp.queueeaseapp.model.ServeUserRequest(userId, centerId)
@@ -171,8 +182,23 @@ fun AdminScreen(centerId: Long) {
                                     isLoading = false
                                     if (response.isSuccessful) {
                                         message = "Successfully served user"
-                                        currentStep = 6
-                                        Log.d("AdminScreen", "DEBUG - User served successfully")
+                                        currentStep = 7
+                                        Log.d("AdminScreenFixed", "STEP 6 - User served successfully")
+                                        
+                                        // Immediately refresh queue status after serving user
+                                        RetrofitClient.api.getQueueUsers(selectedCenter?.id ?: centerId)
+                                            .enqueue(object : Callback<List<com.masterapp.queueeaseapp.model.QueueUser>> {
+                                                override fun onResponse(
+                                                    call: Call<List<com.masterapp.queueeaseapp.model.QueueUser>>,
+                                                    response: Response<List<com.masterapp.queueeaseapp.model.QueueUser>>
+                                                ) {
+                                                    queueUsers = response.body() ?: emptyList()
+                                                    Log.d("AdminScreenFixed", "STEP 6 - Queue users refreshed after serving: ${queueUsers.size} users")
+                                                }
+                                                override fun onFailure(call: Call<List<com.masterapp.queueeaseapp.model.QueueUser>>, t: Throwable) {
+                                                    Log.e("AdminScreenFixed", "STEP 6 - Failed to refresh queue users: ${t.message}")
+                                                }
+                                            })
                                     } else {
                                         message = "Failed to serve user: ${response.code()}"
                                     }
@@ -184,10 +210,21 @@ fun AdminScreen(centerId: Long) {
                             })
                     }
                 )
-                6 -> Step6Refresh(
+                
+                // STEP 7: Backend processing complete, show success
+                7 -> Step7SuccessFixed(
+                    selectedCenter = selectedCenter,
+                    selectedUser = selectedUser,
+                    onContinue = { currentStep = 8 }
+                )
+                
+                // STEP 8: Frontend must refresh queue list immediately
+                8 -> Step8RefreshFixed(
+                    selectedCenter = selectedCenter,
+                    isLoading = isLoading,
                     onRefresh = {
-                        // Refresh all data
                         isLoading = true
+                        // Refresh queue users for the selected center
                         RetrofitClient.api.getQueueUsers(selectedCenter?.id ?: centerId)
                             .enqueue(object : Callback<List<com.masterapp.queueeaseapp.model.QueueUser>> {
                                 override fun onResponse(
@@ -196,17 +233,20 @@ fun AdminScreen(centerId: Long) {
                                 ) {
                                     isLoading = false
                                     queueUsers = response.body() ?: emptyList()
-                                    currentStep = 7
-                                    Log.d("AdminScreen", "DEBUG - Queue refreshed after serving")
+                                    currentStep = 9
+                                    Log.d("AdminScreenFixed", "STEP 8 - Refreshed queue users, found ${queueUsers.size} users")
                                 }
                                 override fun onFailure(call: Call<List<com.masterapp.queueeaseapp.model.QueueUser>>, t: Throwable) {
                                     isLoading = false
-                                    message = "Failed to refresh queue"
+                                    message = "Failed to refresh queue: ${t.message}"
+                                    currentStep = 9
                                 }
                             })
                     }
                 )
-                7 -> Step7Complete(
+                
+                // STEP 9: Frontend must refresh status API and complete
+                9 -> Step9CompleteFixed(
                     selectedCenter = selectedCenter,
                     selectedUser = selectedUser,
                     onStartOver = {
@@ -214,6 +254,7 @@ fun AdminScreen(centerId: Long) {
                         selectedCenter = null
                         selectedUser = null
                         queueUsers = emptyList()
+                        message = ""
                     }
                 )
             }
@@ -222,52 +263,14 @@ fun AdminScreen(centerId: Long) {
             
             // Message Display
             if (message.isNotEmpty()) {
-                AdminMessageCard(message = message, onDismiss = { message = "" })
+                AdminMessageCardFixed(message = message, onDismiss = { message = "" })
             }
         }
     }
 }
 
 @Composable
-private fun QuickActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .height(80.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(12.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.White.copy(alpha = 0.2f),
-            contentColor = Color.White
-        )
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = title,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Medium
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun AdminHeader(centerId: Long, currentStep: Int) {
+private fun AdminHeaderFixed(centerId: Long, currentStep: Int) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -308,7 +311,7 @@ private fun AdminHeader(centerId: Long, currentStep: Int) {
                     )
                 )
                 Text(
-                    text = "Center ID: $centerId | Step $currentStep/7",
+                    text = "Center ID: $centerId | Step $currentStep/9",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -318,9 +321,10 @@ private fun AdminHeader(centerId: Long, currentStep: Int) {
     }
 }
 
+// STEP 1: Admin clicks "Serve Next"
 @Composable
-private fun Step1ServeNext(onNext: () -> Unit) {
-    AdminActionCard(
+private fun Step1ServeNextFixed(onNext: () -> Unit) {
+    AdminActionCardFixed(
         icon = Icons.Default.PlayArrow,
         title = "Serve Next Customer",
         description = "Start the process to serve the next person in queue",
@@ -330,8 +334,9 @@ private fun Step1ServeNext(onNext: () -> Unit) {
     )
 }
 
+// STEP 2: App opens Center List screen (fetch from API) - GET /centers
 @Composable
-private fun Step2CenterSelection(
+private fun Step2CenterSelectionFixed(
     centers: List<com.masterapp.queueeaseapp.model.CenterResponse>,
     selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
     isLoading: Boolean,
@@ -388,7 +393,7 @@ private fun Step2CenterSelection(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(centers) { center ->
-                        CenterSelectionItem(
+                        CenterSelectionItemFixed(
                             center = center,
                             isSelected = selectedCenter?.id == center.id,
                             onSelect = { onCenterSelected(center) }
@@ -400,8 +405,26 @@ private fun Step2CenterSelection(
     }
 }
 
+// STEP 3: Admin selects a center
 @Composable
-private fun Step3UserSelection(
+private fun Step3CenterConfirmationFixed(
+    selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
+    onConfirm: () -> Unit,
+    onBack: () -> Unit
+) {
+    AdminActionCardFixed(
+        icon = Icons.Default.CheckCircle,
+        title = "Center Selected",
+        description = "Center: ${selectedCenter?.name ?: "Unknown"}",
+        buttonText = "Continue",
+        onButtonClick = onConfirm,
+        iconColor = Color(0xFF10B981)
+    )
+}
+
+// STEP 4: App fetches queue users for that center - GET /queue/users?centerId={id}
+@Composable
+private fun Step4UserSelectionFixed(
     queueUsers: List<com.masterapp.queueeaseapp.model.QueueUser>,
     selectedUser: com.masterapp.queueeaseapp.model.QueueUser?,
     isLoading: Boolean,
@@ -466,7 +489,7 @@ private fun Step3UserSelection(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(queueUsers) { user ->
-                        UserSelectionItem(
+                        UserSelectionItemFixed(
                             user = user,
                             isSelected = selectedUser?.userId == user.userId,
                             onSelect = { onUserSelected(user) }
@@ -478,8 +501,9 @@ private fun Step3UserSelection(
     }
 }
 
+// STEP 5: Admin selects ONE user
 @Composable
-private fun Step4Confirmation(
+private fun Step5UserConfirmationFixed(
     selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
     selectedUser: com.masterapp.queueeaseapp.model.QueueUser?,
     onConfirm: () -> Unit,
@@ -502,13 +526,13 @@ private fun Step4Confirmation(
         ) {
             Icon(
                 Icons.Default.Person,
-                contentDescription = "Confirm",
+                contentDescription = "User Selected",
                 tint = Color(0xFF6366F1),
                 modifier = Modifier.size(64.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Confirm Service",
+                text = "User Selected",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     color = Color(0xFF1F2937),
                     fontWeight = FontWeight.Bold
@@ -528,7 +552,7 @@ private fun Step4Confirmation(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Customer ID: ${selectedUser?.userId ?: "Unknown"}",
+                    text = "User ID: ${selectedUser?.userId ?: "Unknown"}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = Color(0xFF6B7280)
                     )
@@ -576,114 +600,69 @@ private fun Step4Confirmation(
     }
 }
 
+// STEP 6: Admin clicks "Serve This User"
 @Composable
-private fun Step5ServeUser(
+private fun Step6ServeUserFixed(
     selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
     selectedUser: com.masterapp.queueeaseapp.model.QueueUser?,
     isLoading: Boolean,
-    onComplete: () -> Unit,
     onServeUser: (Long, Long) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .shadow(elevation = 12.dp, shape = RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                Icons.Default.PlayArrow,
-                contentDescription = "Serve",
-                tint = Color(0xFF10B981),
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Serve Customer",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    color = Color(0xFF1F2937),
-                    fontWeight = FontWeight.Bold
-                )
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "User ID: ${selectedUser?.userId ?: "Unknown"} - Queue #${selectedUser?.queueNumber ?: "?"}",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color(0xFF6B7280)
-                )
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Button(
-                onClick = {
-                    selectedUser?.userId?.let { userId ->
-                        selectedCenter?.id?.let { centerId ->
-                            onServeUser(userId, centerId)
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(28.dp)
-                    ),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF10B981),
-                    contentColor = Color.White
-                ),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = "Serve",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Serve Now",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
+    AdminActionCardFixed(
+        icon = Icons.Default.PlayArrow,
+        title = "Serve This User",
+        description = "User ID: ${selectedUser?.userId ?: "Unknown"} - Queue #${selectedUser?.queueNumber ?: "?"}",
+        buttonText = "Serve Now",
+        onButtonClick = {
+            selectedUser?.userId?.let { userId ->
+                selectedCenter?.id?.let { centerId ->
+                    onServeUser(userId, centerId)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun Step6Refresh(onRefresh: () -> Unit) {
-    AdminActionCard(
-        icon = Icons.Default.Refresh,
-        title = "Refresh Queue Data",
-        description = "Update queue information after serving customer",
-        buttonText = "Refresh Now",
-        onButtonClick = onRefresh,
-        iconColor = Color(0xFF6366F1)
+        },
+        iconColor = Color(0xFF10B981),
+        isLoading = isLoading
     )
 }
 
+// STEP 7: Backend processing complete, show success
 @Composable
-private fun Step7Complete(
+private fun Step7SuccessFixed(
+    selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
+    selectedUser: com.masterapp.queueeaseapp.model.QueueUser?,
+    onContinue: () -> Unit
+) {
+    AdminActionCardFixed(
+        icon = Icons.Default.CheckCircle,
+        title = "User Served Successfully",
+        description = "User ID: ${selectedUser?.userId ?: "Unknown"} has been served",
+        buttonText = "Continue",
+        onButtonClick = onContinue,
+        iconColor = Color(0xFF10B981)
+    )
+}
+
+// STEP 8: Frontend must refresh queue list immediately
+@Composable
+private fun Step8RefreshFixed(
+    selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
+    isLoading: Boolean,
+    onRefresh: () -> Unit
+) {
+    AdminActionCardFixed(
+        icon = Icons.Default.Refresh,
+        title = "Refresh Queue Data",
+        description = "Updating queue list for ${selectedCenter?.name ?: "Unknown"}",
+        buttonText = "Refresh Now",
+        onButtonClick = onRefresh,
+        iconColor = Color(0xFF6366F1),
+        isLoading = isLoading
+    )
+}
+
+// STEP 9: Frontend must refresh status API and complete
+@Composable
+private fun Step9CompleteFixed(
     selectedCenter: com.masterapp.queueeaseapp.model.CenterResponse?,
     selectedUser: com.masterapp.queueeaseapp.model.QueueUser?,
     onStartOver: () -> Unit
@@ -711,7 +690,7 @@ private fun Step7Complete(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Service Complete!",
+                text = "Process Complete!",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     color = Color(0xFF065F46),
                     fontWeight = FontWeight.Bold
@@ -719,7 +698,7 @@ private fun Step7Complete(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Successfully served customer ID: ${selectedUser?.userId ?: "Unknown"}",
+                text = "Successfully served user ID: ${selectedUser?.userId ?: "Unknown"}",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = Color(0xFF065F46)
                 )
@@ -760,13 +739,14 @@ private fun Step7Complete(
 }
 
 @Composable
-private fun AdminActionCard(
+private fun AdminActionCardFixed(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     description: String,
     buttonText: String,
     onButtonClick: () -> Unit,
-    iconColor: Color
+    iconColor: Color,
+    isLoading: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -821,27 +801,36 @@ private fun AdminActionCard(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = iconColor,
                     contentColor = Color.White
-                )
+                ),
+                enabled = !isLoading
             ) {
-                Icon(
-                    icon,
-                    contentDescription = buttonText,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = buttonText,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(24.dp)
                     )
-                )
+                } else {
+                    Icon(
+                        icon,
+                        contentDescription = buttonText,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = buttonText,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun CenterSelectionItem(
+private fun CenterSelectionItemFixed(
     center: com.masterapp.queueeaseapp.model.CenterResponse,
     isSelected: Boolean,
     onSelect: () -> Unit
@@ -890,7 +879,7 @@ private fun CenterSelectionItem(
 }
 
 @Composable
-private fun UserSelectionItem(
+private fun UserSelectionItemFixed(
     user: com.masterapp.queueeaseapp.model.QueueUser,
     isSelected: Boolean,
     onSelect: () -> Unit
@@ -939,7 +928,7 @@ private fun UserSelectionItem(
 }
 
 @Composable
-private fun AdminMessageCard(message: String, onDismiss: () -> Unit) {
+private fun AdminMessageCardFixed(message: String, onDismiss: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()

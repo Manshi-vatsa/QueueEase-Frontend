@@ -34,6 +34,7 @@ import com.masterapp.queueeaseapp.model.CenterResponse
 import com.masterapp.queueeaseapp.model.CrowdLevel
 import com.masterapp.queueeaseapp.model.CrowdDensity
 import com.masterapp.queueeaseapp.NotificationHelper
+import com.masterapp.queueeaseapp.utils.SessionManager
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -71,6 +72,11 @@ fun CenterListScreen(
 
     LaunchedEffect(Unit) {
         isLoading = true
+        Log.d("CenterListScreen", "DEBUG - Starting to load centers from API")
+        Log.d("CenterListScreen", "DEBUG - Session token: ${SessionManager.getToken()}")
+        Log.d("CenterListScreen", "DEBUG - Session userId: ${SessionManager.getUserId()}")
+        Log.d("CenterListScreen", "DEBUG - Session isLoggedIn: ${SessionManager.isLoggedIn()}")
+        
         RetrofitClient.api.getCenters()
             .enqueue(object : Callback<List<CenterResponse>> {
 
@@ -80,26 +86,33 @@ fun CenterListScreen(
                 ) {
                     hasLoadedOnce = true
                     isLoading = false
+                    Log.d("CenterListScreen", "DEBUG - Centers API response code: ${response.code()}")
+                    Log.d("CenterListScreen", "DEBUG - Centers API response message: ${response.message()}")
+                    Log.d("CenterListScreen", "DEBUG - Centers API response body: ${response.body()}")
+                    Log.d("CenterListScreen", "DEBUG - Centers API error body: ${response.errorBody()?.string()}")
+                    
                     if (response.isSuccessful) {
                         centers = response.body() ?: emptyList()
                         Log.d("CenterListScreen", "DEBUG - Loaded ${centers.size} centers")
                         centers.forEach { center ->
-                            Log.d("CenterListScreen", "DEBUG - Center: id=${center.id}, name=${center.name}")
+                            Log.d("CenterListScreen", "DEBUG - Center: id=${center.id}, name=${center.name}, location=${center.location}, type=${center.type}")
                         }
                         if (centers.isEmpty()) {
                             Log.w("CenterListScreen", "WARNING - No centers available from API")
-                            Toast.makeText(context, "No data available", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "No centers available. Please contact admin.", Toast.LENGTH_LONG).show()
                         }
                     } else {
                         Log.e("CenterListScreen", "ERROR - Failed to load centers: ${response.code()}")
-                        Toast.makeText(context, "Failed to load centers", Toast.LENGTH_SHORT).show()
+                        Log.e("CenterListScreen", "ERROR - Response error: ${response.errorBody()?.string()}")
+                        Toast.makeText(context, "Failed to load centers (${response.code()})", Toast.LENGTH_LONG).show()
                     }
                 }
 
                 override fun onFailure(call: Call<List<CenterResponse>>, t: Throwable) {
                     hasLoadedOnce = true
                     isLoading = false
-                    Toast.makeText(context, "Error: ${t.message ?: "Unknown"}", Toast.LENGTH_SHORT).show()
+                    Log.e("CenterListScreen", "ERROR - Centers API failure: ${t.message}", t)
+                    Toast.makeText(context, "Network error: ${t.message ?: "Unknown"}", Toast.LENGTH_LONG).show()
                 }
             })
     }
@@ -300,7 +313,7 @@ fun CenterListScreen(
                 ) { center ->
                     EnhancedCenterCard(
                         center = center,
-                        onCenterClick = { onCenterClick(center.id) }
+                        onCenterClick = { centerId -> onCenterClick(centerId) }
                     )
                 }
             }
@@ -311,7 +324,7 @@ fun CenterListScreen(
 @Composable
 private fun EnhancedCenterCard(
     center: CenterResponse,
-    onCenterClick: () -> Unit
+    onCenterClick: (Long) -> Unit
 ) {
     Log.d("EnhancedCenterCard", "DEBUG - Rendering center: id=${center.id}, name=${center.name}")
     Card(
@@ -399,7 +412,14 @@ private fun EnhancedCenterCard(
             Button(
                 onClick = {
                     Log.d("EnhancedCenterCard", "DEBUG - Clicked center: id=${center.id}, name=${center.name}")
-                    onCenterClick()
+                    Log.d("EnhancedCenterCard", "DEBUG - Center ID validation: id=${center.id}, isValid=${center.id != -1L}")
+                    
+                    if (center.id != -1L) {
+                        Log.d("EnhancedCenterCard", "DEBUG - Calling onCenterClick with valid center ID: ${center.id}")
+                        onCenterClick(center.id)
+                    } else {
+                        Log.e("EnhancedCenterCard", "ERROR - Attempting to navigate with invalid center ID: ${center.id}")
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -621,7 +641,14 @@ private fun GoogleMapWithFallback(
                         onClick = {
                             // Open existing Join Queue screen when marker is clicked
                             Log.d("GoogleMapWithFallback", "DEBUG - Map marker clicked: centerId=${center.id}, centerName=${center.name}")
-                            onCenterClick(center.id)
+                            Log.d("GoogleMapWithFallback", "DEBUG - Map marker ID validation: id=${center.id}, isValid=${center.id != -1L}")
+                            
+                            if (center.id != -1L) {
+                                Log.d("GoogleMapWithFallback", "DEBUG - Calling onCenterClick from map with valid center ID: ${center.id}")
+                                onCenterClick(center.id)
+                            } else {
+                                Log.e("GoogleMapWithFallback", "ERROR - Attempting to navigate from map with invalid center ID: ${center.id}")
+                            }
                             true
                         },
                         icon = BitmapDescriptorFactory.defaultMarker(

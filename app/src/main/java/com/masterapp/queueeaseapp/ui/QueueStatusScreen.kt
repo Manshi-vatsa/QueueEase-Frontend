@@ -171,31 +171,12 @@ fun QueueStatusScreen(
                 QueueStatusContent(data = data!!)
             } else if (!isInQueue) {
                 NotInQueueContent(
-                    userId = userId, 
+                    userId = userId,
                     centerId = centerId,
-                    onQueueJoined = {
-                        // Trigger immediate refresh when queue is joined
-                        isLoading = true
-                        RetrofitClient.api.getStatus(userId, centerId)
-                            .enqueue(object : Callback<QueueStatusResponse> {
-                                override fun onResponse(
-                                    call: Call<QueueStatusResponse>,
-                                    response: Response<QueueStatusResponse>
-                                ) {
-                                    isLoading = false
-                                    if (response.isSuccessful && response.body() != null) {
-                                        data = response.body()
-                                        isInQueue = true
-                                        joinQueueError = null
-                                        Log.d("QueueStatusScreen", "DEBUG - Queue status refreshed after joining")
-                                    }
-                                }
-                                override fun onFailure(call: Call<QueueStatusResponse>, t: Throwable) {
-                                    isLoading = false
-                                    Log.e("QueueStatusScreen", "ERROR - Failed to refresh queue status: ${t.message}")
-                                }
-                            })
-                    }
+                    onDataUpdate = { newData -> data = newData },
+                    onQueueStateUpdate = { inQueue -> isInQueue = inQueue },
+                    onErrorUpdate = { error -> joinQueueError = error },
+                    onLoadingUpdate = { loading -> isLoading = loading }
                 )
             } else if (joinQueueError != null) {
                 ErrorContent(error = joinQueueError!!)
@@ -451,7 +432,10 @@ private fun RecommendationCard(recommendation: String?) {
 private fun NotInQueueContent(
     userId: Long, 
     centerId: Long,
-    onQueueJoined: () -> Unit
+    onDataUpdate: (QueueStatusResponse?) -> Unit,
+    onQueueStateUpdate: (Boolean) -> Unit,
+    onErrorUpdate: (String?) -> Unit,
+    onLoadingUpdate: (Boolean) -> Unit
 ) {
     var isJoining by remember { mutableStateOf(false) }
     
@@ -509,10 +493,36 @@ private fun NotInQueueContent(
                                 
                                 if (response.isSuccessful) {
                                     Log.d("NotInQueueContent", "DEBUG - Successfully joined queue")
-                                    // Call the callback to trigger immediate refresh
-                                    onQueueJoined()
+                                    // Immediately refresh status after joining queue
+                                    onLoadingUpdate(true)
+                                    RetrofitClient.api.getStatus(userId, centerId)
+                                        .enqueue(object : Callback<QueueStatusResponse> {
+                                            override fun onResponse(
+                                                call: Call<QueueStatusResponse>,
+                                                response: Response<QueueStatusResponse>
+                                            ) {
+                                                onLoadingUpdate(false)
+                                                if (response.isSuccessful && response.body() != null) {
+                                                    onDataUpdate(response.body())
+                                                    onQueueStateUpdate(true)
+                                                    onErrorUpdate(null)
+                                                    Log.d("QueueStatusScreen", "DEBUG - Queue status refreshed immediately after joining")
+                                                } else if (response.code() == 404) {
+                                                    onDataUpdate(null)
+                                                    onQueueStateUpdate(false)
+                                                    onErrorUpdate(null)
+                                                } else {
+                                                    onErrorUpdate("Error checking queue status: ${response.code()}")
+                                                }
+                                            }
+                                            override fun onFailure(call: Call<QueueStatusResponse>, t: Throwable) {
+                                                onLoadingUpdate(false)
+                                                onErrorUpdate("Network error: ${t.message}")
+                                            }
+                                        })
                                 } else {
                                     Log.e("NotInQueueContent", "ERROR - Failed to join queue: ${response.code()}")
+                                    isJoining = false
                                 }
                             }
                             

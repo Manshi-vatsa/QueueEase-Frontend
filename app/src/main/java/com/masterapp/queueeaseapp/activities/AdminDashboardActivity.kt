@@ -27,6 +27,8 @@ import com.masterapp.queueeaseapp.model.CenterResponse
 import com.masterapp.queueeaseapp.ui.CenterListScreen
 import com.masterapp.queueeaseapp.ui.AdminScreen
 import com.masterapp.queueeaseapp.ui.CreateCenterScreen
+import com.masterapp.queueeaseapp.utils.SessionManager
+import android.util.Log
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -156,10 +158,25 @@ private fun AdminDashboardContent(
                     // View Queue Button
                     Button(
                         onClick = {
-                            val intent = Intent(context, QueueListActivity::class.java)
-                            intent.putExtra("centerId", 1)
-                            intent.putExtra("role", "ADMIN")
-                            intent.putExtra("centerName", "Center 1")
+                            Log.d("NAV_DEBUG", "Admin clicked Manage Queue")
+                            
+                            // Get admin session info
+                            val adminId = SessionManager.getUserId() ?: -1L
+                            val token = SessionManager.getToken()
+                            
+                            Log.d("NAV_DEBUG", "Admin session: adminId=$adminId, token=$token")
+                            
+                            if (adminId == -1L || token.isNullOrEmpty()) {
+                                Log.e("NAV_DEBUG", "Admin session invalid")
+                                Toast.makeText(context, "Admin session invalid. Please login again.", Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
+                            
+                            // Navigate to center selection first, then to queue management
+                            Log.d("NAV_DEBUG", "Navigating to center selection for queue management")
+                            val intent = Intent(context, UserDashboardActivity::class.java)
+                            intent.putExtra("adminMode", true)
+                            intent.putExtra("purpose", "queue_management")
                             context.startActivity(intent)
                         },
                         modifier = Modifier

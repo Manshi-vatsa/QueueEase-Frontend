@@ -33,22 +33,52 @@ class QueueListActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        Log.d("QueueListActivity", "=================================================")
+        Log.d("QueueListActivity", "DEBUG - QueueListActivity onCreate started")
+        Log.d("QueueListActivity", "DEBUG - Intent extras: ${intent.extras}")
+        Log.d("QueueListActivity", "DEBUG - Intent data: ${intent.data}")
 
         centerId = intent.getLongExtra("centerId", -1L)
-        userId = SessionManager.getUserId() ?: -1L
+        val intentUserId = intent.getLongExtra("userId", -1L)
+        userId = if (intentUserId != -1L) intentUserId else (SessionManager.getUserId() ?: -1L)
         role = intent.getStringExtra("role") ?: "USER"
         
+        Log.d("NAV_DEBUG", "Received centerId=$centerId, userId=$userId, role=$role")
+        
         // DEBUG: Log the values being used
-        Log.d("QueueListActivity", "DEBUG - centerId: $centerId, userId: $userId, role: $role")
+        Log.d("QueueListActivity", "DEBUG - RECEIVED PARAMETERS:")
+        Log.d("QueueListActivity", "DEBUG - centerId from intent: $centerId")
+        Log.d("QueueListActivity", "DEBUG - userId from SessionManager: $userId")
+        Log.d("QueueListActivity", "DEBUG - role from intent: $role")
         Log.d("QueueListActivity", "DEBUG - SessionManager token: ${SessionManager.getToken()}")
         Log.d("QueueListActivity", "DEBUG - SessionManager isLoggedIn: ${SessionManager.isLoggedIn()}")
+        Log.d("QueueListActivity", "DEBUG - Intent hasExtra('centerId'): ${intent.hasExtra("centerId")}")
+        Log.d("QueueListActivity", "DEBUG - Intent hasExtra('role'): ${intent.hasExtra("role")}")
         
-        if (centerId == -1L || userId == -1L) {
-            Log.e("QueueListActivity", "ERROR - Invalid centerId: $centerId or userId: $userId")
-            Toast.makeText(this, "Invalid center or user session. centerId=$centerId, userId=$userId", Toast.LENGTH_LONG).show()
+        if (intent.hasExtra("centerId")) {
+            Log.d("QueueListActivity", "DEBUG - Raw centerId from intent: ${intent.getLongExtra("centerId", -999L)}")
+        }
+        
+        // VALIDATION RULE: If centerId == -1, show error and return
+        if (centerId == -1L) {
+            Log.e("NAV_DEBUG", "Invalid Center ID: centerId=$centerId")
+            Toast.makeText(this, "Invalid Center ID", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
+        
+        if (userId == -1L) {
+            Log.e("NAV_DEBUG", "Invalid User ID: userId=$userId")
+            Toast.makeText(this, "Invalid User ID", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        
+        Log.d("NAV_DEBUG", "Parameters validated successfully: centerId=$centerId, userId=$userId")
+        
+        Log.d("QueueListActivity", "DEBUG - Parameters validated successfully")
+        Log.d("QueueListActivity", "=================================================")
 
         setContent {
             // UI UPDATED - Temporary visible change
