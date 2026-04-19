@@ -16,7 +16,7 @@ interface ApiService {
         @Body request: RegisterRequest
     ): Call<Map<String, Any>>
 
-    @GET("centers")
+    @GET("api/centers")
     fun getCenters(): Call<List<CenterResponse>>
 
     @POST("api/queue/joinQueue")
@@ -41,17 +41,17 @@ interface ApiService {
         @Path("centerId") centerId: Long
     ): Call<Any>
 
-    @POST("centers")
+    @POST("api/centers")
     fun addCenter(
         @Body center: CenterResponse
     ): Call<CenterResponse>
 
-    @GET("queue/users")
+    @GET("api/queue/users")
     fun getQueueUsers(
         @Query("centerId") centerId: Long
     ): Call<List<QueueUser>>
 
-    @POST("queue/serveUser")
+    @POST("api/queue/serveUser")
     fun serveUser(
         @Body request: ServeUserRequest
     ): Call<QueueStatusResponse>

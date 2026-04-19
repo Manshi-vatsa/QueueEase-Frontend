@@ -137,7 +137,7 @@ fun CenterListScreen(
         ) {
             // UPDATED UI LOADED - Visible text
             Text(
-                text = "UPDATED UI LOADED",
+                text = "ohh i caught you 🤭",
                 style = MaterialTheme.typography.titleMedium.copy(
                     color = Color.Red,
                     fontWeight = FontWeight.Bold

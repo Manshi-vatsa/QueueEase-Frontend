@@ -83,7 +83,7 @@ class QueueListActivity : ComponentActivity() {
         setContent {
             // UI UPDATED - Temporary visible change
             Text(
-                text = "🎉 UI UPDATED 🎉",
+                text = "🎉",
                 style = MaterialTheme.typography.displaySmall.copy(
                     color = Color.Yellow,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold

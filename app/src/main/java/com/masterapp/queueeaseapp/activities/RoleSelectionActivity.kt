@@ -50,7 +50,7 @@ class RoleSelectionActivity : ComponentActivity() {
                 ) {
                     // UI UPDATED - Temporary visible change
                     Text(
-                        text = " UI UPDATED ",
+                        text = " (●'◡'●)",
                         style = MaterialTheme.typography.displaySmall.copy(
                             color = Color.Yellow,
                             fontWeight = FontWeight.Bold
